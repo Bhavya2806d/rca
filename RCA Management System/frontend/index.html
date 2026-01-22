@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>RCA Management System</title>
+
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f4f6f8;
+      margin: 0;
+      padding: 20px;
+    }
+
+    h1 {
+      text-align: center;
+      color: #2c3e50;
+    }
+
+    .container {
+      max-width: 1100px;
+      margin: auto;
+      background: white;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    }
+
+    input, textarea, select, button {
+      width: 100%;
+      padding: 10px;
+      margin-top: 10px;
+      font-size: 14px;
+    }
+
+    textarea {
+      resize: vertical;
+    }
+
+    button {
+      background: #007bff;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background: #0056b3;
+    }
+
+    .search-box {
+      margin: 30px 0 10px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 15px;
+    }
+
+    th, td {
+      border: 1px solid #ddd;
+      padding: 10px;
+      text-align: left;
+    }
+
+    th {
+      background: #007bff;
+      color: white;
+    }
+
+    tr:nth-child(even) {
+      background: #f9f9f9;
+    }
+  </style>
+</head>
+
+<body>
+
+<h1>RCA Management System</h1>
+
+<div class="container">
+
+  <h2>Create RCA</h2>
+
+  <input id="title" placeholder="Incident Title" />
+
+  <textarea id="description" placeholder="Root Cause Description"></textarea>
+
+  <select id="severity">
+    <option value="">Select Severity</option>
+    <option value="Low">Low</option>
+    <option value="Medium">Medium</option>
+    <option value="High">High</option>
+    <option value="Critical">Critical</option>
+  </select>
+
+  <textarea id="impact" placeholder="Business / System Impact"></textarea>
+
+  <select id="status">
+    <option value="Open">Open</option>
+    <option value="In Progress">In Progress</option>
+    <option value="Resolved">Resolved</option>
+  </select>
+
+  <button onclick="createRCA()">Submit RCA</button>
+
+  <!-- SEARCH -->
+  <div class="search-box">
+    <h2>Search Incidents</h2>
+    <input id="searchInput" placeholder="Search by incident title..." onkeyup="searchRCA()">
+  </div>
+
+  <!-- TABLE -->
+  <table id="rcaTable" style="display:none;">
+    <thead>
+      <tr>
+        <th>Title</th>
+        <th>Root Cause</th>
+        <th>Severity</th>
+        <th>Impact</th>
+        <th>Status</th>
+      </tr>
+    </thead>
+    <tbody id="rcaBody"></tbody>
+  </table>
+
+</div>
+
+<script>
+  const PB_URL = "http://localhost:8090";
+  const COLLECTION = "rca";
+  let allData = [];
+
+  async function createRCA() {
+    const data = {
+      title: title.value.trim(),
+      description: description.value.trim(),
+      severity: severity.value,
+      impact: impact.value.trim(),
+      status: status.value || "Open"
+    };
+
+    if (!data.title || !data.description || !data.severity) {
+      alert("Please fill required fields");
+      return;
+    }
+
+    await fetch(`${PB_URL}/api/collections/${COLLECTION}/records`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data)
+    });
+
+    alert("RCA Created Successfully");
+    clearForm();
+    loadRCA();
+  }
+
+  function clearForm() {
+    title.value = "";
+    description.value = "";
+    severity.value = "";
+    impact.value = "";
+    status.value = "Open";
+  }
+
+  async function loadRCA() {
+    const res = await fetch(`${PB_URL}/api/collections/${COLLECTION}/records`);
+    const json = await res.json();
+    allData = json.items || [];
+  }
+
+  function searchRCA() {
+    const keyword = searchInput.value.toLowerCase();
+    const filtered = allData.filter(r =>
+      r.title.toLowerCase().includes(keyword)
+    );
+
+    const table = document.getElementById("rcaTable");
+    const body = document.getElementById("rcaBody");
+
+    body.innerHTML = "";
+
+    if (keyword === "") {
+      table.style.display = "none";
+      return;
+    }
+
+    table.style.display = "table";
+
+    filtered.forEach(r => {
+      const row = `<tr>
+        <td>${r.title}</td>
+        <td>${r.description}</td>
+        <td>${r.severity}</td>
+        <td>${r.impact}</td>
+        <td>${r.status}</td>
+      </tr>`;
+      body.innerHTML += row;
+    });
+  }
+
+  loadRCA();
+</script>
+
+</body>
+</html>
